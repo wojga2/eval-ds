@@ -12,7 +12,7 @@ This script demonstrates how to:
 import asyncio
 import logging
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import pandas as pd
 import numpy as np
 from checkpoint_metadata_client.client import BeeRunClient, TaskRunClient, SampleClient
@@ -39,7 +39,7 @@ class BeeRunLoader:
             for client in (self.bee_client, self.task_client, self.sample_client):
                 client.logger.setLevel(logging.WARNING)
     
-    async def load_bee_run_info(self, bee_run_id: str) -> dict:
+    async def load_bee_run_info(self, bee_run_id: str) -> Dict[str, Any]:
         """Load basic information about a bee run."""
         try:
             bee_run = await self.bee_client.get_by_id(uuid.UUID(bee_run_id))
@@ -47,41 +47,62 @@ class BeeRunLoader:
                 print(f"❌ No bee run found with ID: {bee_run_id}")
                 return {}
             
-            return {
+            # Safely extract available attributes
+            bee_run_info = {
                 "bee_run_id": str(bee_run.id),
-                "created_at": bee_run.created_at,
-                "bee_run_config": bee_run.bee_run_config,
-                "bee_run_metadata": bee_run.bee_run_metadata,
-                "wandb_run_url": bee_run.wandb_run_url,
-                "wandb_user": bee_run.wandb_user,
+                "created_at": getattr(bee_run, 'created_at', None),
+                "wandb_run_url": getattr(bee_run, 'wandb_run_url', None),
+                "wandb_user": getattr(bee_run, 'wandb_user', None),
             }
+            
+            # Try to get additional attributes that might exist
+            for attr in ['config', 'bee_run_config', 'metadata', 'bee_run_metadata', 'wandb_run_id']:
+                if hasattr(bee_run, attr):
+                    bee_run_info[attr] = getattr(bee_run, attr)
+            
+            # Debug: Show all available attributes for troubleshooting
+            if hasattr(bee_run, '__dict__'):
+                available_attrs = list(bee_run.__dict__.keys())
+                bee_run_info['_debug_available_attributes'] = available_attrs[:10]  # First 10 for brevity
+            
+            return bee_run_info
         except Exception as e:
             print(f"❌ Error loading bee run info: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
     
-    async def load_task_runs_for_bee_run(self, bee_run_id: str) -> List[dict]:
+    async def load_task_runs_for_bee_run(self, bee_run_id: str) -> List[Dict[str, Any]]:
         """Load all task runs associated with a bee run."""
         try:
-            task_runs = await self.task_client.get_by_bee_run(uuid.UUID(bee_run_id))
+            # Use the correct method: get_by_bee_run_id
+            task_runs = await self.task_client.get_by_bee_run_id(uuid.UUID(bee_run_id))
+            
+            if not task_runs:
+                print(f"⚠️ No task runs found for bee run ID: {bee_run_id}")
+                return []
             
             task_run_info = []
             for task_run in task_runs:
+                # Safely extract task run info
                 info = {
-                    "task_run_id": str(task_run.id),
-                    "task_name": task_run.task_name,
-                    "estimator_name": task_run.estimator_name,
-                    "metrics": task_run.metrics,
-                    "task_metadata": task_run.task_metadata,
-                    "created_at": task_run.created_at,
+                    "task_run_id": str(getattr(task_run, 'id', 'unknown')),
+                    "task_name": getattr(task_run, 'task_name', 'unknown'),
+                    "estimator_name": getattr(task_run, 'estimator_name', 'unknown'),
+                    "metrics": getattr(task_run, 'metrics', {}),
+                    "task_metadata": getattr(task_run, 'task_metadata', {}),
+                    "created_at": getattr(task_run, 'created_at', None),
                 }
                 task_run_info.append(info)
             
             return task_run_info
         except Exception as e:
             print(f"❌ Error loading task runs: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
-    async def load_samples_for_task_run(self, task_run_id: str, limit: Optional[int] = None) -> List[dict]:
+    async def load_samples_for_task_run(self, task_run_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Load samples for a specific task run."""
         try:
             samples = await self.sample_client.get_by_task(task_run_id=uuid.UUID(task_run_id))
@@ -106,7 +127,7 @@ class BeeRunLoader:
             print(f"❌ Error loading samples: {e}")
             return []
     
-    def samples_to_dataframe(self, samples: List[dict]) -> pd.DataFrame:
+    def samples_to_dataframe(self, samples: List[Dict[str, Any]]) -> pd.DataFrame:
         """Convert samples to a pandas DataFrame for analysis."""
         if not samples:
             return pd.DataFrame()
@@ -192,7 +213,7 @@ async def main():
     print("=" * 50)
     
     # Configuration - you can modify these
-    BEE_RUN_ID = "your-bee-run-id-here"  # Replace with actual bee run ID from discover_runs.py
+    BEE_RUN_ID = "your-bee-run-id-here"  # Replace with actual bee run ID from bee_search.py
     ENVIRONMENT = "production"  # or "staging"
     SAMPLE_LIMIT = 100  # Limit samples for testing, set to None for all
     
@@ -204,7 +225,7 @@ async def main():
     if BEE_RUN_ID == "your-bee-run-id-here":
         print("\n⚠️  Please replace 'your-bee-run-id-here' with an actual bee run ID!")
         print("📝 Example bee run ID format: '12345678-1234-1234-1234-123456789abc'")
-                    print("💡 Use 'uv run python bee_search.py --help' to find available bee run IDs")
+        print("💡 Use 'uv run python bee_search.py --help' to find available bee run IDs")
         print("🔍 The discovery tool will show recent runs with their IDs, tasks, and models")
         return
     

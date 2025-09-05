@@ -409,7 +409,10 @@ async def main():
             # Get recent runs, optionally filtered by user, estimator, and/or task
             # Pass task hint to improve search scope
             all_recent = await search.get_recent_runs(
-                limit=args.limit * 10, 
+                # This sets the limit for the number of recent runs to fetch.
+                # It multiplies the user-specified limit by 10 to retrieve more runs up front,
+                # allowing for additional filtering (by estimator/task) before displaying the final results.
+                limit=args.limit * 10,
                 user_filter=args.user or "", 
                 task_hint=args.task or ""
             )
