@@ -1,36 +1,12 @@
 [project]
-name = "eval-ds"
+name = "sample-analyzer"
 version = "0.1.0"
-description = "Simple script to load and analyze bee run samples"
-authors = [{name = "User", email = "user@example.com"}]
+description = "Interactive Streamlit app for analyzing unsuccessful eval samples"
 requires-python = ">=3.10"
 dependencies = [
-    "pandas>=1.0,<3",
-    "numpy>=1.0,<2", 
-    "checkpoint-metadata-client>=10.2.13,<11",
-    "hive>=0.3.36,<1",
-    "pytest>=7.0,<8",
-    "pytest-asyncio>=0.21,<1"
+    "streamlit>=1.28.0",
+    "pandas>=2.0.0"
 ]
 
 [project.scripts]
-load-bee-run = "eval_ds.main:main"
-
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.uv]
-# Used to authenticate with the Cohere Artifact Registry
-keyring-provider = "subprocess"
-
-[[tool.uv.index]]
-# This specifies the GCP artifact repos that `uv` will use to **fetch** dependencies.
-name = "cohere-py"
-url = "https://oauth2accesstoken@us-central1-python.pkg.dev/cohere-artifacts/cohere-py/simple"
-publish-url = "https://oauth2accesstoken@us-central1-python.pkg.dev/cohere-artifacts/cohere-py"
-explicit = true
-
-[tool.uv.sources]
-hive = { index = "cohere-py" }
-checkpoint-metadata-client = { index = "cohere-py" }
+sample-analyzer = "sample_analyzer:main"
