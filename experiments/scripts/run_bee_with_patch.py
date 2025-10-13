@@ -6,6 +6,11 @@ This ensures the patch is applied regardless of Python environment setup.
 
 import sys
 import os
+import logging
+
+# Add project root to path (for tau2bench_preamble_patch)
+eval_ds_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, eval_ds_root)
 
 # Add project scripts to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -113,9 +118,24 @@ def apply_patch():
         traceback.print_exc()
         return False
 
+
 if __name__ == "__main__":
-    # Apply patch
+    # Apply MCP server patch
     apply_patch()
+    
+    # Reduce verbose logging from MCP client and streaming (do this after imports)
+    logging.getLogger('mcp.client.streamable_http').setLevel(logging.CRITICAL)
+    logging.getLogger('mcp.client').setLevel(logging.CRITICAL)
+    logging.getLogger('cohere_mcp_client').setLevel(logging.CRITICAL)
+    logging.getLogger('cohere_mcp_client.clients').setLevel(logging.CRITICAL)
+    logging.getLogger('cohere_mcp_client.streaming_client').setLevel(logging.CRITICAL)
+    
+    # Suppress all streaming progress messages
+    logging.getLogger('').setLevel(logging.WARNING)  # Root logger
+    
+    # But keep bee's important loggers at INFO
+    logging.getLogger('bee').setLevel(logging.INFO)
+    logging.getLogger('api').setLevel(logging.WARNING)
     
     # Now run bee's main
     from bee.__main__ import main

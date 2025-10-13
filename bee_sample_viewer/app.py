@@ -12,7 +12,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.binding import Binding
 
 from .widgets import JSONViewer, SampleDetail, SampleList
-from .reward_explanation import RewardExplanationViewer
+from .reward_viewer import RewardViewer
 from .conversation_viewer import ConversationViewer
 
 
@@ -120,8 +120,8 @@ class BeeViewerApp(App):
                     with TabPane("Conversation", id="tab-conversation"):
                         yield ConversationViewer(id="conversation-viewer")
                     
-                    with TabPane("Reward Explanation", id="tab-reward"):
-                        yield RewardExplanationViewer(id="reward-explanation")
+                    with TabPane("Reward", id="tab-reward"):
+                        yield RewardViewer(id="reward-viewer")
                     
                     with TabPane("Metrics", id="tab-metrics"):
                         yield JSONViewer(id="json-metrics")
@@ -235,7 +235,7 @@ class BeeViewerApp(App):
                 self.query_one("#conversation-viewer", ConversationViewer).conversation = conversation
                 
                 # Update other viewers
-                self.query_one("#reward-explanation", RewardExplanationViewer).data = sample
+                self.query_one("#reward-viewer", RewardViewer).data = sample
                 self.query_one("#json-metrics", JSONViewer).data = sample.get("metrics")
                 self.query_one("#json-debug", JSONViewer).data = sample.get("debug_info")
                 self.query_one("#json-full", JSONViewer).data = sample

@@ -36,23 +36,12 @@ temperature = 0.6
 thinking_enabled = true
 prod = false  # Use staging API
 
-# Task configuration
+# Task configuration with preamble patch
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
 num_runs = 3
 
-# Estimator with custom preamble
+# Estimator configuration
 [estimator.blobheart.preamble_v1]
 model = "c4-prod-run-1"
-chat_preamble = """
-You are an expert customer service agent for a telecommunications company.
-You excel at carefully following instructions and using the available tools precisely.
-When handling customer requests:
-1. Always verify customer identity first using the available lookup tools
-2. Carefully read all account and service details before taking action
-3. Confirm with the customer before making any changes to their account
-4. Use the minimum number of tool calls needed to complete the task efficiently
-5. Pay special attention to billing, plan changes, and technical support issues
-Be methodical, accurate, and customer-focused in your approach.
-"""
 

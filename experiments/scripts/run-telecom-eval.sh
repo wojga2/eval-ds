@@ -2,11 +2,12 @@
 # Run Tau2Bench Telecom evaluation locally
 # Uses local apiary checkout, staging API, and local MCP servers
 #
-# Usage: ./run-telecom-eval.sh [--quick|--focused]
+# Usage: ./run-telecom-eval.sh [--quick|--focused [--num-tasks N]]
 #
 # Options:
-#   --quick     Run with num_runs=1 for quick testing (all 114 tasks)
-#   --focused   Run first 3 tasks only for failure analysis (num_runs=1)
+#   --quick             Run with num_runs=1 for quick testing (all 114 tasks)
+#   --focused           Run first 3 tasks only for failure analysis (num_runs=1)
+#   --num-tasks N       With --focused, run first N tasks (default: 3)
 
 set -euo pipefail
 
@@ -15,10 +16,11 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG="${PROJECT_ROOT}/experiments/configs/tau2bench_telecom.toml"
 QUICK_MODE=false
 FOCUSED_MODE=false
+NUM_TASKS=""
 
 # Parse arguments
-for arg in "$@"; do
-    case $arg in
+while [[ $# -gt 0 ]]; do
+    case $1 in
         --quick)
             QUICK_MODE=true
             shift
@@ -28,13 +30,28 @@ for arg in "$@"; do
             CONFIG="${PROJECT_ROOT}/experiments/configs/tau2bench_telecom_focused.toml"
             shift
             ;;
+        --num-tasks)
+            if [[ -n "${2:-}" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+                NUM_TASKS="$2"
+                shift 2
+            else
+                echo "Error: --num-tasks requires a positive integer"
+                exit 1
+            fi
+            ;;
         *)
-            echo "Unknown argument: $arg"
-            echo "Usage: $0 [--quick|--focused]"
+            echo "Unknown argument: $1"
+            echo "Usage: $0 [--quick|--focused [--num-tasks N]]"
             exit 1
             ;;
     esac
 done
+
+# Validate arguments
+if [[ -n "$NUM_TASKS" ]] && [[ "$FOCUSED_MODE" != true ]]; then
+    echo "Error: --num-tasks can only be used with --focused mode"
+    exit 1
+fi
 
 # Change to project root
 cd "${PROJECT_ROOT}"
@@ -82,9 +99,18 @@ echo "Log file: ${LOG_FILE}"
 echo ""
 
 if [ "$FOCUSED_MODE" = true ]; then
-    echo "🔬 Focused mode: Running first 3 tasks for failure analysis"
+    # Determine number of tasks (default 3, or custom from --num-tasks)
+    TASKS_TO_RUN="${NUM_TASKS:-3}"
+    echo "🔬 Focused mode: Running first ${TASKS_TO_RUN} tasks for failure analysis"
     echo ""
-    BEE_ARGS=("-I" "${CONFIG}")
+    
+    if [[ -n "$NUM_TASKS" ]]; then
+        # Override num_truncate with custom value
+        BEE_ARGS=("-I" "${CONFIG}" "--options" "--num_truncate" "${NUM_TASKS}")
+    else
+        # Use default from config file (3 tasks)
+        BEE_ARGS=("-I" "${CONFIG}")
+    fi
 elif [ "$QUICK_MODE" = true ]; then
     echo "⚡ Quick mode: Running with num_runs=1"
     echo ""
@@ -97,8 +123,13 @@ echo "Starting evaluation at: $(date)"
 echo "========================================="
 echo ""
 
-# Run bee evaluation
-"${SCRIPT_DIR}/run-bee" "${BEE_ARGS[@]}" 2>&1 | tee "${LOG_FILE}"
+# Run bee evaluation with filtered output
+# Note: Preamble patch is automatically applied by run_bee_with_patch.py
+# 
+# The filter script removes verbose streaming logs and adds task completion counter
+"${SCRIPT_DIR}/run-bee" "${BEE_ARGS[@]}" 2>&1 | \
+    tee "${LOG_FILE}" | \
+    "${SCRIPT_DIR}/filter-bee-output.sh"
 
 EXIT_CODE=${PIPESTATUS[0]}
 

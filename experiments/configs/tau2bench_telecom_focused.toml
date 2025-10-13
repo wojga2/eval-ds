@@ -20,8 +20,8 @@ parallel = 2  # Lower parallelism for detailed logging
 shuffle_tasks = false  # Keep deterministic order for analysis
 
 # Version and run name
-version = "focused_analysis"
-log_wandb_run_name = "{date} - Tau2Bench_Telecom_Focused [{estimators}]"
+version = "focused_analysis_with_patch"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Focused_Patched [{estimators}]"
 
 # Summary metrics
 [options.summary_metrics.Tau2Bench_Telecom]
@@ -36,24 +36,13 @@ temperature = 0.6
 thinking_enabled = true
 prod = false  # Use staging API
 
-# Task configuration - LIMITED TO FIRST 3 TASKS
+# Task configuration with preamble patch
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
 num_runs = 1  # Single run for focused analysis
 num_truncate = 3  # ONLY first 3 tasks for analysis
 
-# Estimator with custom preamble
+# Estimator configuration
 [estimator.blobheart.focused]
 model = "c4-prod-run-1"
-chat_preamble = """
-You are an expert customer service agent for a telecommunications company.
-You excel at carefully following instructions and using the available tools precisely.
-When handling customer requests:
-1. Always verify customer identity first using the available lookup tools
-2. Carefully read all account and service details before taking action
-3. Confirm with the customer before making any changes to their account
-4. Use the minimum number of tool calls needed to complete the task efficiently
-5. Pay special attention to billing, plan changes, and technical support issues
-Be methodical, accurate, and customer-focused in your approach.
-"""
 

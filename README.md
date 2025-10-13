@@ -303,10 +303,12 @@ uv run view-bee-samples output/bee_run_*.jsonl
 
 **Features**:
 - Navigate samples with arrow keys or vim keys (j/k)
-- Switch between tabs (Overview/Inputs/Outputs/Metadata)
-- View TauBench reward explanations with color coding
+- Switch between tabs (Conversation/Reward/Metrics/Debug Info/Full Sample)
+- View Tau2Bench reward analysis with detailed action comparison
+- Analyze expected vs actual actions taken by the agent
+- Understand evaluation criteria and where the agent failed
 - Search and filter samples
-- Syntax highlighting for JSON
+- Syntax highlighting for JSON and pretty-printed output
 
 ### run-bee
 
