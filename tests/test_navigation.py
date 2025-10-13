@@ -116,60 +116,6 @@ class TestKeyboardNavigation:
             assert app.current_sample_index == 0
 
 
-class TestContentFocusing:
-    """Test focusing and scrolling content."""
-    
-    @pytest.mark.asyncio
-    async def test_space_focuses_content(self, test_jsonl_file):
-        """Test that Space key focuses content viewer."""
-        app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
-        async with app.run_test() as pilot:
-            await pilot.pause()
-            
-            # Ensure a sample is loaded and displayed
-            assert app.current_sample_index == 0
-            
-            # Get the outputs viewer - it should have data
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
-            assert outputs_viewer.data is not None
-            
-            # Focus it directly (space key action calls this logic)
-            outputs_viewer.focus()
-            await pilot.pause()
-            
-            # Check that the JSONViewer is focused
-            focused = app.focused
-            assert isinstance(focused, JSONViewer)
-            assert focused.id == "json-outputs"
-    
-    @pytest.mark.asyncio
-    async def test_scrolling_actions_work(self, test_jsonl_file):
-        """Test that scroll actions don't crash."""
-        app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
-        async with app.run_test() as pilot:
-            await pilot.pause()
-            
-            # Focus content first
-            await pilot.press("space")
-            await pilot.pause()
-            
-            # Try various scroll actions
-            await pilot.press("pagedown")
-            await pilot.pause()
-            
-            await pilot.press("pageup")
-            await pilot.pause()
-            
-            await pilot.press("home")
-            await pilot.pause()
-            
-            await pilot.press("end")
-            await pilot.pause()
-            
-            # Should not crash
-            assert app.is_running
-
-
 class TestHelp:
     """Test help functionality."""
     

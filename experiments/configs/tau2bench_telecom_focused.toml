@@ -1,42 +1,50 @@
-# Tau2Bench Telecom - Self-contained config
-# Run from eval-ds:
-#   uv run --with bee --python 3.11 python -m bee -I experiments/tau2bench_telecom.toml --estimator blobheart --model c4-prod-run-1
+# Tau2Bench Telecom - Focused Analysis (First 3 tasks)
+# For sample-level failure mode analysis
+# Run: ./experiments/scripts/run-telecom-eval.sh --focused
 
 [options]
-wandb = true
-version = "preamble_v1"
-log_wandb_run_name = "{date} - Tau2Bench_Telecom_Preamble [{estimators}]"
-log_wandb_project = "tau2bench-preamble-experiments"
-
-# Production settings (replicated from c4/settings.toml)
-inspect = true
-verbose = false
-log_every = 0.5
+# Logging - use beedb for storage, disable wandb
+beedb = true
+wandb = false
+log_wandb_project = "eval-ds"
 log_samples = true
-log_samples_n = -1
+log_samples_n = -1  # Log all samples for analysis
 make_wandb_report = false
-attempts_per_task = 3
-parallel = 4
-shuffle_tasks = true
+
+# Execution settings
+inspect = false
+verbose = true
+log_every = 0.5
+attempts_per_task = 1  # Single attempt for focused analysis
+parallel = 2  # Lower parallelism for detailed logging
+shuffle_tasks = false  # Keep deterministic order for analysis
+
+# Version and run name
+version = "focused_analysis"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Focused [{estimators}]"
 
 # Summary metrics
 [options.summary_metrics.Tau2Bench_Telecom]
 "Tau2BenchTask.Telecom:total_reward" = 1
 
 # Estimator defaults (recommended for reasoning models)
+# prod = false means use staging API (CO_API_KEY_STAGING)
 [estimator-defaults]
 k = 0
 p = 0.95
 temperature = 0.6
 thinking_enabled = true
+prod = false  # Use staging API
 
-# Task configuration
+# Task configuration - LIMITED TO FIRST 3 TASKS
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
-num_runs = 3
+num_runs = 1  # Single run for focused analysis
+num_truncate = 3  # ONLY first 3 tasks for analysis
 
 # Estimator with custom preamble
-[estimator.blobheart.preamble_v1]
+[estimator.blobheart.focused]
+model = "c4-prod-run-1"
 chat_preamble = """
 You are an expert customer service agent for a telecommunications company.
 You excel at carefully following instructions and using the available tools precisely.

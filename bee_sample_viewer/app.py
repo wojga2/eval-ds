@@ -13,6 +13,7 @@ from textual.binding import Binding
 
 from .widgets import JSONViewer, SampleDetail, SampleList
 from .reward_explanation import RewardExplanationViewer
+from .conversation_viewer import ConversationViewer
 
 
 class BeeViewerApp(App):
@@ -116,14 +117,11 @@ class BeeViewerApp(App):
                 yield Rule()
                 
                 with TabbedContent(id="detail-panel"):
+                    with TabPane("Conversation", id="tab-conversation"):
+                        yield ConversationViewer(id="conversation-viewer")
+                    
                     with TabPane("Reward Explanation", id="tab-reward"):
                         yield RewardExplanationViewer(id="reward-explanation")
-                    
-                    with TabPane("Outputs", id="tab-outputs"):
-                        yield JSONViewer(id="json-outputs")
-                    
-                    with TabPane("Inputs", id="tab-inputs"):
-                        yield JSONViewer(id="json-inputs")
                     
                     with TabPane("Metrics", id="tab-metrics"):
                         yield JSONViewer(id="json-metrics")
@@ -231,9 +229,13 @@ class BeeViewerApp(App):
             
             # Update all viewers
             try:
+                # Update conversation viewer with the conversation from outputs
+                outputs = sample.get("outputs", {})
+                conversation = outputs.get("conversation") if isinstance(outputs, dict) else None
+                self.query_one("#conversation-viewer", ConversationViewer).conversation = conversation
+                
+                # Update other viewers
                 self.query_one("#reward-explanation", RewardExplanationViewer).data = sample
-                self.query_one("#json-outputs", JSONViewer).data = sample.get("outputs")
-                self.query_one("#json-inputs", JSONViewer).data = sample.get("inputs")
                 self.query_one("#json-metrics", JSONViewer).data = sample.get("metrics")
                 self.query_one("#json-debug", JSONViewer).data = sample.get("debug_info")
                 self.query_one("#json-full", JSONViewer).data = sample
@@ -268,9 +270,8 @@ class BeeViewerApp(App):
             active_pane_id = tabbed.active
             
             tab_to_viewer = {
+                "tab-conversation": None,  # Conversation viewer is not a JSONViewer
                 "tab-reward": None,  # Reward explanation is not a JSONViewer
-                "tab-outputs": "json-outputs",
-                "tab-inputs": "json-inputs",
                 "tab-metrics": "json-metrics",
                 "tab-debug": "json-debug",
                 "tab-full": "json-full",
@@ -411,9 +412,8 @@ class BeeViewerApp(App):
             
             # Map tab IDs to viewer IDs
             tab_to_viewer = {
+                "tab-conversation": None,  # Conversation is already nicely formatted
                 "tab-reward": None,  # Reward explanation doesn't support markdown toggle
-                "tab-outputs": "json-outputs",
-                "tab-inputs": "json-inputs",
                 "tab-metrics": "json-metrics",
                 "tab-debug": "json-debug",
                 "tab-full": "json-full",
@@ -423,8 +423,8 @@ class BeeViewerApp(App):
             if viewer_id:
                 viewer = self.query_one(f"#{viewer_id}", JSONViewer)
                 viewer.action_toggle_markdown()
-            elif active_pane_id == "tab-reward":
-                # Reward explanation doesn't support markdown toggle
+            elif active_pane_id in ("tab-conversation", "tab-reward"):
+                # These tabs don't support markdown toggle
                 pass
             else:
                 self.log(f"Unknown active pane: {active_pane_id}")
@@ -439,7 +439,7 @@ class BeeViewerApp(App):
 📋 Sample Navigation:
   ←/→            Previous/Next sample
   j/k            Previous/Next sample (vim-style)
-  Tab            Switch between tabs (Outputs/Inputs/Metrics/etc)
+  Tab            Switch between tabs (Conversation/Metrics/Debug/etc)
   
 📜 Content Scrolling (works automatically on active tab):
   ↑/↓            Scroll content line by line
@@ -448,7 +448,7 @@ class BeeViewerApp(App):
   End            Jump to bottom of content
   
 🎨 Viewing:
-  m              Toggle Markdown mode (formats text beautifully!)
+  m              Toggle Markdown mode (works on Metrics/Debug/Full tabs)
   
 ⚡ General:
   q              Quit
@@ -456,16 +456,20 @@ class BeeViewerApp(App):
   
 💡 Workflow:
   1. Use ←/→ or j/k to browse samples
-  2. Press Tab to switch tabs (Outputs, Metrics, etc)
-  3. Press 'm' to toggle Markdown view (great for raw_prompt!)
+  2. Press Tab to switch tabs
+     - Conversation: See full agent dialogue with tool calls
+     - Reward Explanation: Understand why task passed/failed (TauBench only)
+     - Metrics: Task performance metrics
+     - Debug Info: Execution details
+  3. Press 'm' to toggle Markdown view on JSON tabs
   4. Use ↑/↓ to scroll, Shift+↑/↓ for faster paging
-  5. All scrolling works automatically - no focus needed!
   
-🎨 Markdown Mode:
-  - Renders headers, lists, bold/italic text
-  - Extracts and formats JSON code blocks
-  - Syntax highlights with line numbers
-  - Pretty-prints JSON with proper indentation
+💬 Conversation Tab:
+  - Shows System, User, Chatbot, and Tool turns
+  - Displays thinking/rationale (💭)
+  - Shows tool calls (🔧) with parameters
+  - Shows tool results (🔍)
+  - Automatically formatted for easy reading
         """
         self.notify(help_text, title="Help", timeout=25)
 

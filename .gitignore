@@ -221,7 +221,6 @@ data/
 
 # Output files
 output/
-results/
 exports/
 
 # Cache directories
@@ -250,3 +249,6 @@ docs/_build/
 
 # Cohere specific (if any)
 .cohere/
+
+# Experiment logs
+experiments/logs/

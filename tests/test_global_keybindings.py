@@ -20,7 +20,7 @@ class TestGlobalMarkdownToggle:
             
             # Switch to Outputs tab (reward is first, doesn't support markdown)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             # Focus the sample list (default focus)
@@ -29,7 +29,7 @@ class TestGlobalMarkdownToggle:
             await pilot.pause()
             
             # Get the outputs viewer
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
+            outputs_viewer = app.query_one("#json-metrics", JSONViewer)
             initial_mode = outputs_viewer.markdown_mode
             
             # Call action directly (key press might not work in test environment)
@@ -47,7 +47,7 @@ class TestGlobalMarkdownToggle:
             await pilot.pause()
             
             # Focus the content
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
+            outputs_viewer = app.query_one("#json-metrics", JSONViewer)
             outputs_viewer.focus()
             await pilot.pause()
             
@@ -69,34 +69,34 @@ class TestGlobalMarkdownToggle:
             
             # Switch to Outputs tab (Reward is default)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
-            await pilot.pause()
-            
-            # Start on Outputs tab
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
-            assert outputs_viewer.markdown_mode is False
-            
-            # Toggle markdown on Outputs
-            app.action_toggle_markdown()
-            await pilot.pause()
-            assert outputs_viewer.markdown_mode is True
-            
-            # Switch to Metrics tab by activating it directly
-            tabbed = app.query_one(TabbedContent)
             tabbed.active = "tab-metrics"
             await pilot.pause()
             
-            # Metrics should still be in JSON mode
+            # Start on Metrics tab
             metrics_viewer = app.query_one("#json-metrics", JSONViewer)
             assert metrics_viewer.markdown_mode is False
             
-            # Toggle Metrics to markdown
+            # Toggle markdown on Metrics
             app.action_toggle_markdown()
             await pilot.pause()
             assert metrics_viewer.markdown_mode is True
             
-            # Outputs should still be in markdown
-            assert outputs_viewer.markdown_mode is True
+            # Switch to Debug tab
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-debug"
+            await pilot.pause()
+            
+            # Debug should still be in JSON mode (different viewer)
+            debug_viewer = app.query_one("#json-debug", JSONViewer)
+            assert debug_viewer.markdown_mode is False
+            
+            # Toggle Debug to markdown
+            app.action_toggle_markdown()
+            await pilot.pause()
+            assert debug_viewer.markdown_mode is True
+            
+            # Metrics should still be in markdown
+            assert metrics_viewer.markdown_mode is True
     
     @pytest.mark.asyncio
     async def test_m_updates_active_tab_only(self, test_jsonl_file):
@@ -106,28 +106,28 @@ class TestGlobalMarkdownToggle:
             await pilot.pause()
             
             # Get all viewers
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
-            inputs_viewer = app.query_one("#json-inputs", JSONViewer)
             metrics_viewer = app.query_one("#json-metrics", JSONViewer)
+            debug_viewer = app.query_one("#json-debug", JSONViewer)
+            full_viewer = app.query_one("#json-full", JSONViewer)
             
             # All should start in JSON mode
-            assert outputs_viewer.markdown_mode is False
-            assert inputs_viewer.markdown_mode is False
             assert metrics_viewer.markdown_mode is False
+            assert debug_viewer.markdown_mode is False
+            assert full_viewer.markdown_mode is False
             
-            # Switch to Outputs tab (Reward is active by default)
+            # Switch to Metrics tab (Conversation is active by default)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
-            # Toggle on Outputs tab
+            # Toggle on Metrics tab
             app.action_toggle_markdown()
             await pilot.pause()
             
-            # Only Outputs should be in markdown mode
-            assert outputs_viewer.markdown_mode is True
-            assert inputs_viewer.markdown_mode is False
-            assert metrics_viewer.markdown_mode is False
+            # Only Metrics should be in markdown mode
+            assert metrics_viewer.markdown_mode is True
+            assert debug_viewer.markdown_mode is False
+            assert full_viewer.markdown_mode is False
 
 
 class TestMarkdownPersistence:
@@ -142,16 +142,16 @@ class TestMarkdownPersistence:
             
             # Switch to Outputs tab (Reward is default)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             # Switch to Outputs tab (Reward is default)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             # Enable markdown on first sample
-            outputs_viewer = app.query_one("#json-outputs", JSONViewer)
+            outputs_viewer = app.query_one("#json-metrics", JSONViewer)
             app.action_toggle_markdown()
             await pilot.pause()
             assert outputs_viewer.markdown_mode is True

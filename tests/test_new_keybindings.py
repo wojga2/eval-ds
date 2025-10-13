@@ -77,7 +77,7 @@ class TestContentScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
                         # Get the active viewer
@@ -100,7 +100,7 @@ class TestContentScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
                         # Get the active viewer
@@ -123,13 +123,13 @@ class TestContentScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             # Should start on Outputs tab
             active_viewer = app._get_active_viewer()
             assert active_viewer is not None
-            assert active_viewer.id == "json-outputs"
+            assert active_viewer.id == "json-metrics"
             
             # Switch to Metrics tab
             tabbed.active = "tab-metrics"
@@ -153,7 +153,7 @@ class TestPageScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
                         # Get initial scroll position
@@ -176,7 +176,7 @@ class TestPageScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
                         # Get viewer
@@ -203,7 +203,7 @@ class TestJumpScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             viewer = app._get_active_viewer()
@@ -225,7 +225,7 @@ class TestJumpScrolling:
             
             # Switch to Outputs tab (Reward is default and not a JSONViewer)
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             viewer = app._get_active_viewer()
@@ -254,8 +254,8 @@ class TestGetActiveViewer:
             
             # Test each tab
             tab_mappings = [
-                ("tab-outputs", "json-outputs"),
-                ("tab-inputs", "json-inputs"),
+                ("tab-metrics", "json-metrics"),
+                ("tab-debug", "json-debug"),
                 ("tab-metrics", "json-metrics"),
                 ("tab-debug", "json-debug"),
                 ("tab-full", "json-full"),
@@ -282,7 +282,7 @@ class TestGetActiveViewer:
             
             # Now switch to a tab with a JSONViewer
             tabbed = app.query_one(TabbedContent)
-            tabbed.active = "tab-outputs"
+            tabbed.active = "tab-metrics"
             await pilot.pause()
             
             # Should now return a viewer

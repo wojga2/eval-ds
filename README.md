@@ -1,162 +1,382 @@
-# Bee Run Data Tools
+# Eval Data Science Tools
 
-Tools for downloading, viewing, and running bee evaluations with full metadata and agentic trajectories.
+Tools for downloading, viewing, and analyzing bee evaluation results.
 
 ## Features
 
-- 📥 **Download** bee run samples from BeeDB with full trajectories
-- 👀 **View** samples in an interactive TUI with reward explanations (TauBench)
-- 🧪 **Run** bee experiments with custom preambles (no apiary checkout needed!)
+- **Download bee runs** from BeeDB to local JSONL files
+- **Interactive TUI viewer** for exploring samples and results
+- **TauBench reward visualization** with detailed explanations
+- **Local evaluation execution** with apiary checkout
 
 ## Quick Start
 
-```bash
-# 1. Download samples from a bee run
-uv run download-bee-run --run-id "your-bee-run-id"
-
-# 2. View samples in an interactive TUI
-uv run view-bee-samples output/task_*.jsonl
-
-# 3. Run bee experiments (self-contained!)
-uv run --with bee --python 3.11 python -m bee -I experiments/tau2bench_telecom.toml \
-    --estimator blobheart --model c4-prod-run-1
-```
-
-## Running Bee Experiments (Self-Contained)
-
-This repo includes everything you need to run bee experiments without the apiary checkout:
-
-### Single Preamble Test
+### 0. Set up your environment (first time only)
 
 ```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone apiary (required for bee)
+cd ~/dev
+git clone git@github.com:cohere-ai/apiary.git
+
+# Clone MCP servers (required for Tau2Bench)
+git clone git@github.com:cohere-ai/mcp.git
+
+# Set up API keys
 cd ~/dev/eval-ds
+cp .env.example .env
+# Edit .env and add your CO_API_KEY_STAGING
 
-# Quick test (5 samples)
-uv run --with bee --python 3.11 python -m bee --test \
-    -I experiments/tau2bench_telecom.toml \
-    --estimator blobheart --model c4-prod-run-1
-
-# Full run
-uv run --with bee --python 3.11 python -m bee \
-    -I experiments/tau2bench_telecom.toml \
-    --estimator blobheart --model c4-prod-run-1
+# Sync dependencies
+uv sync
 ```
 
-### Preamble Ablation Study (4 variants)
+### 1. Run bee evaluations
 
 ```bash
-cd ~/dev/eval-ds
+# Run Tau2Bench Telecom (full evaluation)
+./experiments/scripts/run-telecom-eval.sh
 
-uv run --with bee --python 3.11 python -m bee \
-    -I experiments/tau2bench_ablation.toml \
-    --estimator blobheart --model c4-prod-run-1 \
-    --estimator blobheart --model c4-prod-run-1 \
-    --estimator blobheart --model c4-prod-run-1 \
-    --estimator blobheart --model c4-prod-run-1
+# Quick test (1 run instead of 3)
+./experiments/scripts/run-telecom-eval.sh --quick
+
+# Focused analysis (first 3 tasks only, 1 run)
+./experiments/scripts/run-telecom-eval.sh --focused
 ```
 
-### Create Your Own Experiments
+**See [`experiments/LOCAL_SETUP.md`](experiments/LOCAL_SETUP.md) for complete setup guide.**
 
-Store your experiment configs in `experiments/` directory:
+### 2. Download bee run results
 
+```bash
+# Get bee_run_id from the evaluation output
+uv run download-bee-run --run-id <bee_run_id>
+
+# Downloads to output/ directory by default
+# Or specify custom directory:
+uv run download-bee-run --run-id <bee_run_id> --output-dir ./results
+```
+
+### 3. View samples in interactive TUI
+
+```bash
+uv run view-bee-samples output/your_downloaded_file.jsonl
+```
+
+**Keyboard shortcuts:**
+- `↑`/`↓` or `j`/`k`: Navigate samples
+- `→`/`←` or `l`/`h`: Switch tabs (Overview/Inputs/Outputs/Metadata)
+- `q`: Quit
+- `/`: Search (in sample list)
+
+### 4. Analyze results
+
+The TUI provides:
+- Sample-by-sample navigation
+- Full inputs, outputs, and metadata inspection
+- TauBench reward visualization with explanations
+- Score filtering and search
+
+## Repository Structure
+
+```
+eval-ds/
+├── experiments/
+│   ├── configs/                        # Evaluation configurations
+│   │   ├── common.toml                 # Shared settings
+│   │   ├── tau2bench_telecom.toml      # Full telecom evaluation
+│   │   └── tau2bench_telecom_focused.toml  # Focused (3 tasks)
+│   ├── scripts/                        # Execution scripts
+│   │   ├── run-bee                     # Main bee wrapper
+│   │   ├── run-telecom-eval.sh         # Telecom eval runner
+│   │   ├── manage-mcp-servers.sh       # MCP server management
+│   │   └── run_bee_with_patch.py       # MCP patching for local servers
+│   ├── logs/                           # Execution logs (gitignored)
+│   ├── LOCAL_SETUP.md                  # Complete local setup guide
+│   └── LOCAL_MCP_SOLUTION.md           # Technical details on MCP patching
+│
+├── bee_sample_viewer/                  # Interactive TUI application
+│   ├── __main__.py                     # Entry point
+│   ├── app.py                          # Main TUI application
+│   ├── widgets.py                      # Custom textual widgets
+│   └── reward_explanation.py           # TauBench reward parsing
+│
+├── download_bee_run.py                 # BeeDB download script
+├── .env.example                        # API key template
+└── pyproject.toml                      # Dependencies and scripts
+```
+
+## Configuration Files
+
+### Example: Telecom Evaluation
+
+`experiments/configs/tau2bench_telecom.toml`:
 ```toml
-# experiments/my_experiment.toml
+[includes]
+common = "experiments/configs/common.toml"
+
 [options]
-wandb = true
-log_wandb_run_name = "{date} - My Experiment [{estimators}]"
+version = "telecom_v1"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom [{estimators}]"
 
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
-num_runs = 3
+num_runs = 3  # Run each task 3 times
 
-[estimator.blobheart]
-chat_preamble = "Your custom preamble..."
+[estimator.blobheart.preamble_v1]
+model = "c4-prod-run-1"
+chat_preamble = """
+You are an expert customer service agent...
+"""
 ```
 
-## Download Usage
+### Example: Focused Analysis
+
+`experiments/configs/tau2bench_telecom_focused.toml`:
+```toml
+[includes]
+common = "experiments/configs/common.toml"
+
+[options]
+version = "focused_analysis"
+parallel = 2  # Lower parallelism
+
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_truncate = 3  # Only first 3 tasks
+num_runs = 1  # Single run per task
+
+[estimator.blobheart.focused]
+model = "c4-prod-run-1"
+```
+
+## Local Execution Architecture
+
+### How It Works
+
+1. **Local Apiary**: Uses your `~/dev/apiary` checkout for bee
+2. **Staging API**: Accesses models via `CO_API_KEY_STAGING`
+3. **Local MCP Servers**: Runs tau2_bench MCP servers on localhost:8100-8102
+4. **BeeDB Logging**: Results automatically saved to production BeeDB
+5. **Runtime Patching**: `run_bee_with_patch.py` monkeypatches Tau2BenchTask to use local MCP servers
+
+### MCP Servers
+
+Tau2Bench requires MCP (Model Context Protocol) servers for the simulated environments:
 
 ```bash
-# Download all samples from a bee run
-uv run download-bee-run --run-id "your-bee-run-id"
+# Start MCP servers (airline, retail, telecom)
+./experiments/scripts/manage-mcp-servers.sh start
 
-# Download specific task
-uv run download-bee-run \
-    --task-run-id "your-task-run-id" \
-    --run-id "your-bee-run-id"
+# Check status
+./experiments/scripts/manage-mcp-servers.sh status
 
-# With filters and limits
-uv run download-bee-run \
-    --run-id "your-bee-run-id" \
-    --task-filter "Tau2BenchTask" \
-    --sample-limit 100 \
-    --verbose
+# Stop servers
+./experiments/scripts/manage-mcp-servers.sh stop
 ```
 
-## Viewer Features
+The `run-telecom-eval.sh` script automatically starts MCP servers if they're not running.
 
-The interactive TUI viewer (`view-bee-samples`) provides:
+## Comparing Results Across Runs
 
-- **Reward Explanation Tab**: TauBench-specific reward calculation display
-- **Rich Formatting**: Markdown rendering with syntax highlighting
-- **Token-Aware Display**: Special handling for agentic trajectory tokens
-- **JSON Prettification**: Automatic JSON formatting
-- **Keyboard Navigation**: Navigate samples without a mouse
-- **Multi-Tab View**: Tabs for different data views
+### Stable Identifiers
 
-### Viewer Keyboard Shortcuts
+When comparing the same tasks across different runs (e.g., different preambles):
 
-```
-Navigation:
-  ←/→     Previous/Next sample
-  j/k     Next/Previous sample (Vim-style)
-  
-Scrolling:
-  ↑/↓     Scroll up/down by line
-  Shift+↑/↓  Page up/down
-  Home/End   Jump to top/bottom
+- **TauBench**: Use `inputs.env` + `inputs.index`
+- **Tau2Bench**: Use `scenario_id` or `inputs.data_item.task_id`
+- **NOT stable**: `sample_id` (randomly generated per run)
 
-Display:
-  m       Toggle markdown mode
-  ?       Show help
-  q       Quit
-```
-
-## Comparing Runs
-
-After running experiments, download and compare results:
+### Example Analysis
 
 ```python
 import pandas as pd
 import json
 
-def load_tau2bench_samples(file_path):
-    samples = []
-    with open(file_path) as f:
-        for line in f:
-            data = json.loads(line)
-            if data.get('inputs'):
-                data['scenario_id'] = data['inputs'].get('scenario_id')
-            samples.append(data)
-    return pd.DataFrame(samples)
-
 # Load two runs
-baseline = load_tau2bench_samples("output/task_Tau2Bench_baseline.jsonl")
-experimental = load_tau2bench_samples("output/task_Tau2Bench_v1.jsonl")
+baseline_samples = []
+with open('output/baseline.jsonl') as f:
+    for line in f:
+        baseline_samples.append(json.loads(line))
 
-# Join on scenario_id
-comparison = baseline.merge(experimental, on="scenario_id", suffixes=("_base", "_exp"))
+preamble_v1_samples = []
+with open('output/preamble_v1.jsonl') as f:
+    for line in f:
+        preamble_v1_samples.append(json.loads(line))
 
-# Compare rewards
-comparison["reward_base"] = comparison["metrics_base"].apply(lambda x: x.get("reward", 0))
-comparison["reward_exp"] = comparison["metrics_exp"].apply(lambda x: x.get("reward", 0))
-comparison["improvement"] = comparison["reward_exp"] - comparison["reward_base"]
+baseline = pd.DataFrame(baseline_samples)
+preamble_v1 = pd.DataFrame(preamble_v1_samples)
 
+# Extract scenario_id from inputs
+baseline['scenario_id'] = baseline['inputs'].apply(lambda x: x['data_item']['task_id'])
+preamble_v1['scenario_id'] = preamble_v1['inputs'].apply(lambda x: x['data_item']['task_id'])
+
+# Join on stable identifier
+comparison = pd.merge(
+    baseline[['scenario_id', 'outputs']],
+    preamble_v1[['scenario_id', 'outputs']],
+    on='scenario_id',
+    suffixes=('_baseline', '_v1')
+)
+
+# Extract rewards
+comparison['reward_baseline'] = comparison['outputs_baseline'].apply(lambda x: x['reward'])
+comparison['reward_v1'] = comparison['outputs_v1'].apply(lambda x: x['reward'])
+
+# Calculate improvement
+comparison['improvement'] = comparison['reward_v1'] - comparison['reward_baseline']
+
+# Analyze
 print(f"Mean improvement: {comparison['improvement'].mean():.3f}")
+print(f"Win rate: {(comparison['improvement'] > 0).mean():.1%}")
+print("\nTop 10 improvements:")
+print(comparison.sort_values('improvement', ascending=False).head(10))
 ```
 
-## Requirements
+## Development
 
-- Python 3.10+
-- `uv` package manager
-- Access to cohere-py package registry (for bee)
-- API keys for beedb/blobheart as needed
+### Installing Dependencies
+
+```bash
+uv sync
+```
+
+### Running Tests
+
+```bash
+uv run pytest
+```
+
+### Code Quality
+
+```bash
+# Format code
+uv run ruff format .
+
+# Lint
+uv run ruff check .
+```
+
+## Tools Reference
+
+### download-bee-run
+
+Downloads complete bee run data from BeeDB.
+
+```bash
+# Basic usage
+uv run download-bee-run --run-id <bee_run_id>
+
+# Custom output directory
+uv run download-bee-run --run-id <bee_run_id> --output-dir custom_dir/
+
+# Filter tasks
+uv run download-bee-run --run-id <bee_run_id> --task-filter "Telecom"
+
+# Limit samples per task (for large tasks)
+uv run download-bee-run --run-id <bee_run_id> --sample-limit 10
+```
+
+**Output**: JSONL file in output directory with all samples.
+
+**Data included**:
+- `sample_id`: Unique sample identifier (random per run)
+- `prompt_hash`: Hash of input prompt (changes with preamble)
+- `inputs`: Task inputs and metadata (includes stable identifiers)
+- `outputs`: Model generations, rewards, trajectories
+- `metrics`: Evaluation scores
+- `task_run_info`: Task and estimator metadata
+
+### view-bee-samples
+
+Interactive TUI for viewing downloaded samples.
+
+```bash
+# View a specific file
+uv run view-bee-samples output/bee_run_*.jsonl
+
+# View with filtering
+uv run view-bee-samples output/bee_run_*.jsonl
+```
+
+**Features**:
+- Navigate samples with arrow keys or vim keys (j/k)
+- Switch between tabs (Overview/Inputs/Outputs/Metadata)
+- View TauBench reward explanations with color coding
+- Search and filter samples
+- Syntax highlighting for JSON
+
+### run-bee
+
+Main wrapper script for running bee evaluations locally.
+
+```bash
+# Run with a config file
+./experiments/scripts/run-bee -I experiments/configs/your-config.toml
+
+# With additional options
+./experiments/scripts/run-bee -I experiments/configs/your-config.toml --test --verbose
+```
+
+**How it works**:
+1. Loads environment variables from `.env`
+2. Verifies `~/dev/apiary` checkout exists
+3. Changes to `~/dev/apiary/bee` directory
+4. Runs `uv run run_bee_with_patch.py` which:
+   - Monkeypatches `Tau2BenchTask.run_estimator` to use local MCP servers
+   - Executes `python -m bee` with your config
+
+## Troubleshooting
+
+### "apiary not found"
+
+Clone apiary to your home directory:
+```bash
+cd ~/dev
+git clone git@github.com:cohere-ai/apiary.git
+```
+
+### "MCP servers not running"
+
+Start the MCP servers:
+```bash
+./experiments/scripts/manage-mcp-servers.sh start
+```
+
+Or let the run script start them automatically:
+```bash
+./experiments/scripts/run-telecom-eval.sh
+```
+
+### "CO_API_KEY_STAGING not set"
+
+Add your API key to `.env`:
+```bash
+cp .env.example .env
+# Edit .env and add: CO_API_KEY_STAGING=your-key-here
+```
+
+### "BeeDB connection failed"
+
+Ensure you're on the Cohere VPN or have proper network access to BeeDB.
+
+## Contributing
+
+1. Make changes in a feature branch
+2. Run tests: `uv run pytest`
+3. Lint: `uv run ruff check .`
+4. Submit PR
+
+## Support
+
+- **Documentation**: 
+  - `experiments/LOCAL_SETUP.md` - Complete setup guide
+  - `experiments/LOCAL_MCP_SOLUTION.md` - Technical details
+- **Slack**: #bee for questions
+- **Issues**: Report to the team
+
+---
+
+**Happy evaluating! 🐝**

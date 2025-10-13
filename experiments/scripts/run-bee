@@ -1,0 +1,51 @@
+#!/bin/bash
+# Run bee evaluations using local apiary checkout
+# This script runs bee locally with staging API access and beedb logging
+#
+# Usage:
+#   ./run-bee -I path/to/config.toml [other bee args]
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+APIARY_DIR="${HOME}/dev/apiary"
+
+# Verify apiary checkout exists
+if [ ! -d "${APIARY_DIR}" ]; then
+    echo "❌ Error: apiary not found at ${APIARY_DIR}"
+    echo "Please clone it: git clone git@github.com:cohere-ai/apiary.git ~/dev/apiary"
+    exit 1
+fi
+
+BEE_DIR="${APIARY_DIR}/bee"
+if [ ! -d "${BEE_DIR}" ]; then
+    echo "❌ Error: bee directory not found at ${BEE_DIR}"
+    exit 1
+fi
+
+# Load environment variables (API keys, etc.)
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    set -a
+    source "${PROJECT_ROOT}/.env"
+    set +a
+fi
+
+# Ensure API keys are set
+if [ -z "${CO_API_KEY_STAGING:-}" ]; then
+    echo "❌ Error: CO_API_KEY_STAGING not set"
+    echo "Please set it in ${PROJECT_ROOT}/.env or export it"
+    exit 1
+fi
+
+# Change to bee directory and run bee
+cd "${BEE_DIR}"
+
+echo "🐝 Running bee from local apiary checkout..."
+echo "  Bee dir: ${BEE_DIR}"
+echo "  Config: $*"
+echo ""
+
+# Run bee with uv using our patching wrapper
+# The wrapper patches tau2bench to use local MCP servers before starting bee
+exec uv run "${PROJECT_ROOT}/experiments/scripts/run_bee_with_patch.py" --log_username "${USER}" "$@"

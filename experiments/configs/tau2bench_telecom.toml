@@ -1,0 +1,58 @@
+# Tau2Bench Telecom - Self-contained config
+# Run from eval-ds:
+#   ./experiments/scripts/run-bee -I experiments/configs/tau2bench_telecom.toml
+
+[options]
+# Logging - use beedb for storage, disable wandb
+beedb = true
+wandb = false
+log_wandb_project = "eval-ds"
+log_samples = true
+log_samples_n = -1
+make_wandb_report = false
+
+# Execution settings
+inspect = false
+verbose = true
+log_every = 0.5
+attempts_per_task = 3
+parallel = 4
+shuffle_tasks = true
+
+# Version and run name
+version = "preamble_v1"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Preamble [{estimators}]"
+
+# Summary metrics
+[options.summary_metrics.Tau2Bench_Telecom]
+"Tau2BenchTask.Telecom:total_reward" = 1
+
+# Estimator defaults (recommended for reasoning models)
+# prod = false means use staging API (CO_API_KEY_STAGING)
+[estimator-defaults]
+k = 0
+p = 0.95
+temperature = 0.6
+thinking_enabled = true
+prod = false  # Use staging API
+
+# Task configuration
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 3
+
+# Estimator with custom preamble
+[estimator.blobheart.preamble_v1]
+model = "c4-prod-run-1"
+chat_preamble = """
+You are an expert customer service agent for a telecommunications company.
+You excel at carefully following instructions and using the available tools precisely.
+When handling customer requests:
+1. Always verify customer identity first using the available lookup tools
+2. Carefully read all account and service details before taking action
+3. Confirm with the customer before making any changes to their account
+4. Use the minimum number of tool calls needed to complete the task efficiently
+5. Pay special attention to billing, plan changes, and technical support issues
+Be methodical, accurate, and customer-focused in your approach.
+"""
+
