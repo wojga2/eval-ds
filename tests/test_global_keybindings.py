@@ -18,6 +18,11 @@ class TestGlobalMarkdownToggle:
         async with app.run_test() as pilot:
             await pilot.pause()
             
+            # Switch to Outputs tab (reward is first, doesn't support markdown)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
             # Focus the sample list (default focus)
             sample_list = app.query_one("#sample-list")
             sample_list.focus()
@@ -60,6 +65,11 @@ class TestGlobalMarkdownToggle:
         """Test that 'm' toggles the active tab's viewer."""
         app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
         async with app.run_test() as pilot:
+            await pilot.pause()
+            
+            # Switch to Outputs tab (Reward is default)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
             await pilot.pause()
             
             # Start on Outputs tab
@@ -105,7 +115,12 @@ class TestGlobalMarkdownToggle:
             assert inputs_viewer.markdown_mode is False
             assert metrics_viewer.markdown_mode is False
             
-            # Toggle on Outputs tab (active by default)
+            # Switch to Outputs tab (Reward is active by default)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+            # Toggle on Outputs tab
             app.action_toggle_markdown()
             await pilot.pause()
             
@@ -123,6 +138,16 @@ class TestMarkdownPersistence:
         """Test that markdown mode persists when switching samples."""
         app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
         async with app.run_test() as pilot:
+            await pilot.pause()
+            
+            # Switch to Outputs tab (Reward is default)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+            # Switch to Outputs tab (Reward is default)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
             await pilot.pause()
             
             # Enable markdown on first sample

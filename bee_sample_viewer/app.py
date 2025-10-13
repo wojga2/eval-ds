@@ -12,6 +12,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.binding import Binding
 
 from .widgets import JSONViewer, SampleDetail, SampleList
+from .reward_explanation import RewardExplanationViewer
 
 
 class BeeViewerApp(App):
@@ -45,6 +46,12 @@ class BeeViewerApp(App):
         background: $panel;
         padding: 1;
         border-bottom: solid $primary;
+    }
+    
+    .status-header {
+        height: auto;
+        padding: 0 1;
+        background: $panel;
     }
     
     DataTable {
@@ -105,9 +112,13 @@ class BeeViewerApp(App):
             # Main panel: Sample details
             with Vertical(id="main"):
                 yield SampleDetail(id="sample-summary")
+                yield Label("", id="status-header", classes="status-header")
                 yield Rule()
                 
                 with TabbedContent(id="detail-panel"):
+                    with TabPane("Reward Explanation", id="tab-reward"):
+                        yield RewardExplanationViewer(id="reward-explanation")
+                    
                     with TabPane("Outputs", id="tab-outputs"):
                         yield JSONViewer(id="json-outputs")
                     
@@ -215,15 +226,19 @@ class BeeViewerApp(App):
             except Exception as e:
                 self.log(f"Error updating summary: {e}")
             
-            # Update JSON viewers directly
+            # Update status header
+            self._update_status_header(sample, index)
+            
+            # Update all viewers
             try:
+                self.query_one("#reward-explanation", RewardExplanationViewer).data = sample
                 self.query_one("#json-outputs", JSONViewer).data = sample.get("outputs")
                 self.query_one("#json-inputs", JSONViewer).data = sample.get("inputs")
                 self.query_one("#json-metrics", JSONViewer).data = sample.get("metrics")
                 self.query_one("#json-debug", JSONViewer).data = sample.get("debug_info")
                 self.query_one("#json-full", JSONViewer).data = sample
             except Exception as e:
-                self.log(f"Error updating JSON viewers: {e}")
+                self.log(f"Error updating viewers: {e}")
                 self.notify(f"Display error: {e}", severity="error")
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
@@ -253,6 +268,7 @@ class BeeViewerApp(App):
             active_pane_id = tabbed.active
             
             tab_to_viewer = {
+                "tab-reward": None,  # Reward explanation is not a JSONViewer
                 "tab-outputs": "json-outputs",
                 "tab-inputs": "json-inputs",
                 "tab-metrics": "json-metrics",
@@ -266,6 +282,71 @@ class BeeViewerApp(App):
         except Exception as e:
             self.log(f"Error getting active viewer: {e}")
         return None
+    
+    def _update_status_header(self, sample: Dict[str, Any], index: int) -> None:
+        """Update the status header with color-coded pass/fail info."""
+        from rich.text import Text
+        
+        try:
+            status_header = self.query_one("#status-header", Label)
+        except:
+            return  # Header not found, skip
+        
+        # Extract metrics
+        metrics = sample.get("metrics", {})
+        reward = metrics.get("mean_reward")
+        expect_no_op = metrics.get("expect_no_op", False)
+        
+        # Get task info for context
+        task_run_info = sample.get("task_run_info", {})
+        task_name = task_run_info.get("task_name", "Unknown")
+        task_metrics = task_run_info.get("task_metrics", {})
+        
+        # Extract task success rate if available
+        task_success_rate = None
+        for key in task_metrics:
+            if "mean_reward" in key and "/" in key:
+                task_success_rate = task_metrics[key]
+                break
+        
+        # Build status text with colors
+        text = Text()
+        
+        # Sample number
+        text.append(f"Sample #{index + 1}/{len(self.filtered_samples)}", style="bold white")
+        text.append(" | ", style="dim white")
+        
+        # Pass/Fail status with color-coding
+        if reward is not None:
+            if reward >= 1.0:
+                text.append("✅ PASSED", style="bold green")
+            elif reward > 0.0:
+                text.append("⚠️  PARTIAL", style="bold yellow")
+            else:
+                text.append("❌ FAILED", style="bold red")
+            text.append(f" (Reward: {reward:.1f})", style="dim white")
+        else:
+            text.append("⚪ NO REWARD", style="dim white")
+        
+        text.append(" | ", style="dim white")
+        
+        # Task name (abbreviated)
+        task_short = task_name.split(".")[-1] if "." in task_name else task_name
+        text.append(f"Task: {task_short}", style="cyan")
+        
+        # Task success rate if available
+        if task_success_rate is not None:
+            text.append(f" ({task_success_rate:.1%} overall)", style="dim cyan")
+        
+        text.append(" | ", style="dim white")
+        
+        # No-op status
+        if expect_no_op:
+            text.append("No-Op: True", style="yellow")
+        else:
+            text.append("No-Op: False", style="dim white")
+        
+        status_header.update(text)
     
     def action_scroll_up(self) -> None:
         """Scroll current content up by one line."""
@@ -330,6 +411,7 @@ class BeeViewerApp(App):
             
             # Map tab IDs to viewer IDs
             tab_to_viewer = {
+                "tab-reward": None,  # Reward explanation doesn't support markdown toggle
                 "tab-outputs": "json-outputs",
                 "tab-inputs": "json-inputs",
                 "tab-metrics": "json-metrics",
@@ -341,6 +423,9 @@ class BeeViewerApp(App):
             if viewer_id:
                 viewer = self.query_one(f"#{viewer_id}", JSONViewer)
                 viewer.action_toggle_markdown()
+            elif active_pane_id == "tab-reward":
+                # Reward explanation doesn't support markdown toggle
+                pass
             else:
                 self.log(f"Unknown active pane: {active_pane_id}")
         except Exception as e:

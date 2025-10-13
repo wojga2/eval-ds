@@ -1,0 +1,9 @@
+#!/bin/bash
+# Wrapper script to run bee from eval-ds without apiary checkout
+# Usage: ./run-bee [bee arguments]
+#
+# Note: Bee requires Python 3.10 or 3.11 (not 3.12+)
+# You can change --python 3.11 to --python 3.10 if needed
+
+exec uvx --python 3.11 --from bee bee "$@"
+

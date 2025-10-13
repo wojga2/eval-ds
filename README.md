@@ -1,6 +1,12 @@
 # Bee Run Data Tools
 
-Tools for downloading and viewing bee run samples with full metadata and agentic trajectories.
+Tools for downloading, viewing, and running bee evaluations with full metadata and agentic trajectories.
+
+## Features
+
+- 📥 **Download** bee run samples from BeeDB with full trajectories
+- 👀 **View** samples in an interactive TUI with reward explanations (TauBench)
+- 🧪 **Run** bee experiments with custom preambles (no apiary checkout needed!)
 
 ## Quick Start
 
@@ -10,6 +16,61 @@ uv run download-bee-run --run-id "your-bee-run-id"
 
 # 2. View samples in an interactive TUI
 uv run view-bee-samples output/task_*.jsonl
+
+# 3. Run bee experiments (self-contained!)
+uv run --with bee --python 3.11 python -m bee -I experiments/tau2bench_telecom.toml \
+    --estimator blobheart --model c4-prod-run-1
+```
+
+## Running Bee Experiments (Self-Contained)
+
+This repo includes everything you need to run bee experiments without the apiary checkout:
+
+### Single Preamble Test
+
+```bash
+cd ~/dev/eval-ds
+
+# Quick test (5 samples)
+uv run --with bee --python 3.11 python -m bee --test \
+    -I experiments/tau2bench_telecom.toml \
+    --estimator blobheart --model c4-prod-run-1
+
+# Full run
+uv run --with bee --python 3.11 python -m bee \
+    -I experiments/tau2bench_telecom.toml \
+    --estimator blobheart --model c4-prod-run-1
+```
+
+### Preamble Ablation Study (4 variants)
+
+```bash
+cd ~/dev/eval-ds
+
+uv run --with bee --python 3.11 python -m bee \
+    -I experiments/tau2bench_ablation.toml \
+    --estimator blobheart --model c4-prod-run-1 \
+    --estimator blobheart --model c4-prod-run-1 \
+    --estimator blobheart --model c4-prod-run-1 \
+    --estimator blobheart --model c4-prod-run-1
+```
+
+### Create Your Own Experiments
+
+Store your experiment configs in `experiments/` directory:
+
+```toml
+# experiments/my_experiment.toml
+[options]
+wandb = true
+log_wandb_run_name = "{date} - My Experiment [{estimators}]"
+
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 3
+
+[estimator.blobheart]
+chat_preamble = "Your custom preamble..."
 ```
 
 ## Download Usage
@@ -26,7 +87,7 @@ uv run download-bee-run \
 # With filters and limits
 uv run download-bee-run \
     --run-id "your-bee-run-id" \
-    --task-filter "BFCLTask" \
+    --task-filter "Tau2BenchTask" \
     --sample-limit 100 \
     --verbose
 ```
@@ -35,18 +96,12 @@ uv run download-bee-run \
 
 The interactive TUI viewer (`view-bee-samples`) provides:
 
-- **Rich Formatting**: Automatic markdown rendering with syntax highlighting
-- **Token-Aware Display**: Special handling for agentic trajectory tokens:
-  - 🔧 **SYSTEM** sections (blue)
-  - 👤 **USER** sections (green)
-  - 🤖 **ASSISTANT** sections (cyan)
-  - 💭 **THINKING** sections (yellow)
-  - ⚡ **ACTION** sections (magenta)
-  - 💬 **RESPONSE** sections (cyan)
-  - 🔨 **TOOL RESULT** sections (red)
-- **JSON Prettification**: Automatically detects and formats JSON in any field
-- **Keyboard Navigation**: Navigate samples and scroll content without a mouse
-- **Multi-Tab View**: Separate tabs for Outputs, Inputs, Metrics, Debug Info
+- **Reward Explanation Tab**: TauBench-specific reward calculation display
+- **Rich Formatting**: Markdown rendering with syntax highlighting
+- **Token-Aware Display**: Special handling for agentic trajectory tokens
+- **JSON Prettification**: Automatic JSON formatting
+- **Keyboard Navigation**: Navigate samples without a mouse
+- **Multi-Tab View**: Tabs for different data views
 
 ### Viewer Keyboard Shortcuts
 
@@ -66,56 +121,42 @@ Display:
   q       Quit
 ```
 
-## What It Downloads
+## Comparing Runs
 
-The tool fetches ALL available fields from the checkpoint-tracker API:
-- ✅ Sample metadata (IDs, timestamps, hashes)
-- ✅ Outputs (raw_prompt, parse info, debug data)
-- ✅ Metrics (task evaluation results)
-- ✅ Debug info (timing, usage, errors)
+After running experiments, download and compare results:
 
-## Known Issue: Missing Model Generations
+```python
+import pandas as pd
+import json
 
-**For BFCL Task:** The `outputs.generations` field is NULL because the BFCL task has a bug where it doesn't save model responses to the database. The download tool correctly fetches all available data - the problem is upstream in the task code.
+def load_tau2bench_samples(file_path):
+    samples = []
+    with open(file_path) as f:
+        for line in f:
+            data = json.loads(line)
+            if data.get('inputs'):
+                data['scenario_id'] = data['inputs'].get('scenario_id')
+            samples.append(data)
+    return pd.DataFrame(samples)
 
-What you'll see:
-```
-📊 Output fields: generations=0/3046, raw_generations=0/3046, thinking=0/3046, raw_prompt=3046/3046
-⚠️  WARNING: Model generations are NULL but prompts exist.
-```
+# Load two runs
+baseline = load_tau2bench_samples("output/task_Tau2Bench_baseline.jsonl")
+experimental = load_tau2bench_samples("output/task_Tau2Bench_v1.jsonl")
 
-This means:
-- ✅ You have the input prompts
-- ✅ You have the metrics and pass/fail results
-- ❌ Model responses were never saved to the database
+# Join on scenario_id
+comparison = baseline.merge(experimental, on="scenario_id", suffixes=("_base", "_exp"))
 
-## Available Options
+# Compare rewards
+comparison["reward_base"] = comparison["metrics_base"].apply(lambda x: x.get("reward", 0))
+comparison["reward_exp"] = comparison["metrics_exp"].apply(lambda x: x.get("reward", 0))
+comparison["improvement"] = comparison["reward_exp"] - comparison["reward_base"]
 
-```
---run-id          Bee run ID to download
---output-dir      Output directory (default: ./output)
---task-filter     Filter tasks by name (substring match)
---metric-filter   Filter tasks by metric name
---task-run-id     Download specific task run ID
---max-tasks       Limit number of tasks
---sample-limit    Limit samples per task
---verbose         Show detailed progress
+print(f"Mean improvement: {comparison['improvement'].mean():.3f}")
 ```
 
-## Output Format
+## Requirements
 
-Saves to JSONL files with one sample per line:
-```json
-{
-  "sample_id": "uuid",
-  "task_run_id": "uuid",
-  "task_name": "TaskName",
-  "outputs": {
-    "raw_prompt": "...",
-    "generations": null,
-    "metrics": {...}
-  },
-  "metrics": {...},
-  "debug_info": {...}
-}
-```
+- Python 3.10+
+- `uv` package manager
+- Access to cohere-py package registry (for bee)
+- API keys for beedb/blobheart as needed

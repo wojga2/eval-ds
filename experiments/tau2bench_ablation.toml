@@ -1,0 +1,70 @@
+# Tau2Bench Telecom - Preamble Ablation Study
+# Run from eval-ds with 4 estimators:
+#   uv run --with bee --python 3.11 python -m bee -I experiments/tau2bench_ablation.toml \
+#     --estimator blobheart --model c4-prod-run-1 \
+#     --estimator blobheart --model c4-prod-run-1 \
+#     --estimator blobheart --model c4-prod-run-1 \
+#     --estimator blobheart --model c4-prod-run-1
+
+[options]
+wandb = true
+version = "ablation_v1"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Ablation [{estimators}]"
+log_wandb_project = "tau2bench-preamble-experiments"
+inspect = true
+verbose = false
+log_every = 0.5
+log_samples = true
+log_samples_n = -1
+attempts_per_task = 3
+parallel = 4
+shuffle_tasks = true
+
+# Summary metrics
+[options.summary_metrics.Tau2Bench_Telecom]
+"Tau2BenchTask.Telecom:total_reward" = 1
+
+# Estimator defaults
+[estimator-defaults]
+k = 0
+p = 0.95
+temperature = 0.6
+thinking_enabled = true
+
+# Task configuration
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 3
+
+# ========== Estimator Variants ==========
+
+# Baseline: No custom preamble
+[estimator.blobheart.baseline]
+
+# V1: Verification-focused
+[estimator.blobheart.v1_verification]
+chat_preamble = """
+You are a careful and thorough telecommunications customer service agent.
+ALWAYS verify customer identity before taking any actions.
+Double-check all account details and service information before making changes.
+Read tool responses carefully and ensure you understand them completely.
+"""
+
+# V2: Efficiency-focused
+[estimator.blobheart.v2_efficiency]
+chat_preamble = """
+You are an efficient telecommunications customer service agent.
+Use the minimum number of tool calls to complete each task.
+When possible, batch multiple lookups together.
+Provide clear, concise responses to the customer.
+"""
+
+# V3: Completeness-focused
+[estimator.blobheart.v3_completeness]
+chat_preamble = """
+You are a meticulous telecommunications customer service agent.
+Ensure you complete ALL parts of the customer's request.
+Verify that every action has been taken before responding.
+Check that you've addressed each aspect of the customer's needs.
+"""
+

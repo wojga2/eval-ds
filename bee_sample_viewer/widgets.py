@@ -16,6 +16,7 @@ from rich.console import Group
 from rich.text import Text
 from rich.table import Table as RichTable
 from rich.panel import Panel
+from rich.rule import Rule
 
 
 class SampleList(DataTable):

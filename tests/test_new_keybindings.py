@@ -5,6 +5,7 @@ Tests for updated keybindings (arrow keys for navigation and scrolling).
 import pytest
 from bee_sample_viewer.app import BeeViewerApp
 from bee_sample_viewer.widgets import JSONViewer
+from textual.widgets import TabbedContent
 
 
 class TestArrowNavigation:
@@ -74,7 +75,12 @@ class TestContentScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
-            # Get the active viewer
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+                        # Get the active viewer
             viewer = app._get_active_viewer()
             assert viewer is not None
             
@@ -92,7 +98,12 @@ class TestContentScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
-            # Get the active viewer
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+                        # Get the active viewer
             viewer = app._get_active_viewer()
             assert viewer is not None
             
@@ -110,14 +121,17 @@ class TestContentScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
             # Should start on Outputs tab
             active_viewer = app._get_active_viewer()
             assert active_viewer is not None
             assert active_viewer.id == "json-outputs"
             
             # Switch to Metrics tab
-            from textual.widgets import TabbedContent
-            tabbed = app.query_one(TabbedContent)
             tabbed.active = "tab-metrics"
             await pilot.pause()
             
@@ -137,7 +151,12 @@ class TestPageScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
-            # Get initial scroll position
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+                        # Get initial scroll position
             viewer = app._get_active_viewer()
             assert viewer is not None
             
@@ -155,7 +174,12 @@ class TestPageScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
-            # Get viewer
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+                        # Get viewer
             viewer = app._get_active_viewer()
             assert viewer is not None
             
@@ -177,6 +201,11 @@ class TestJumpScrolling:
         async with app.run_test() as pilot:
             await pilot.pause()
             
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
             viewer = app._get_active_viewer()
             assert viewer is not None
             
@@ -192,6 +221,11 @@ class TestJumpScrolling:
         """Test that End jumps to bottom of content."""
         app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
         async with app.run_test() as pilot:
+            await pilot.pause()
+            
+            # Switch to Outputs tab (Reward is default and not a JSONViewer)
+            tabbed = app.query_one(TabbedContent)
+            tabbed.active = "tab-outputs"
             await pilot.pause()
             
             viewer = app._get_active_viewer()
@@ -237,15 +271,21 @@ class TestGetActiveViewer:
     
     @pytest.mark.asyncio
     async def test_returns_none_for_invalid_tab(self, test_jsonl_file):
-        """Test that _get_active_viewer handles invalid tabs gracefully."""
+        """Test that _get_active_viewer returns None for non-JSONViewer tabs."""
         app = BeeViewerApp(jsonl_file=str(test_jsonl_file))
         async with app.run_test() as pilot:
             await pilot.pause()
             
-            # Manually set an invalid tab (shouldn't happen in practice)
-            from textual.widgets import TabbedContent
+            # First tab (Reward Explanation) is not a JSONViewer, so should return None
+            viewer = app._get_active_viewer()
+            assert viewer is None
+            
+            # Now switch to a tab with a JSONViewer
             tabbed = app.query_one(TabbedContent)
-            # This should still return a valid viewer (defaults to first tab)
+            tabbed.active = "tab-outputs"
+            await pilot.pause()
+            
+            # Should now return a viewer
             viewer = app._get_active_viewer()
             assert viewer is not None
 
