@@ -40,6 +40,7 @@ prod = false  # Use staging API
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
 num_runs = 3
+prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER"]  # List of patch IDs to apply
 
 # Estimator configuration
 [estimator.blobheart.preamble_v1]

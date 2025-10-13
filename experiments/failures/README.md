@@ -1,76 +1,89 @@
-# Failure Reports
+# Tau2Bench Failure Reports
 
-This directory contains detailed failure analysis reports for tau2bench and other evaluation tasks.
+This directory contains detailed analysis of failure modes observed during tau2bench evaluations.
 
-## Reports
+## Purpose
 
-### Tau2Bench Telecom Tool Confusion (October 13, 2025)
+Each failure report documents:
+1. **Symptoms**: Specific errors and behavior observed
+2. **Examples**: Multiple real cases from evaluation runs
+3. **Root Cause**: Technical analysis of why the issue occurs
+4. **Impact**: Metrics on how frequently and severely the issue affects evaluations
+5. **Solution**: Link to corresponding prompt patch
 
-**Status**: ✅ FIXED - Monkeypatch Solution Implemented & Integrated
+## Structure
 
-**`TOOL_CONFUSION_BUG.md`** - Comprehensive analysis of critical bug where the chatbot attempted to call user device tools directly instead of instructing customers to run them
+Each report follows the naming convention: `{PATCH_ID}.md`
 
-Key contents:
-- Executive summary with impact metrics (245 errors, 90% failure rate)
-- Detailed explanation of the problematic preamble and how it's misinterpreted
-- 5 real-world examples from logs showing different tool types and contexts
-- Pattern analysis demonstrating cascading failure behavior
-- Tool architecture explanation (assistant/ vs user/ prefix system)
-- Complete fix documentation with before/after comparison
-- Lessons learned for prompt engineering, eval design, and multi-agent systems
+The corresponding fix is in: `../prompt_patches/{PATCH_ID}.txt`
 
-**Impact**: 18/20 samples (90%) failing with invalid tool call errors
+## Active Failures
 
-**Root Cause**: Ambiguous preamble text - "you will have to help the customer perform series of actions" was interpreted as "I can call these tools directly" instead of "I should instruct the customer to run these tools"
+### ✅ FIXED - `TOOL_CONFUSION_AGENT_VS_USER`
+**Status**: Patched and validated  
+**Issue**: Model attempts to call user device tools directly  
+**Impact**: 91% error reduction, +35% success rate improvement  
+**Patch**: `TOOL_CONFUSION_AGENT_VS_USER.txt`  
+**Report**: `TOOL_CONFUSION_AGENT_VS_USER.md`
 
-**Fix**: Updated preambles in all tau2bench telecom configs to explicitly clarify which tools the chatbot can call vs. which tools the customer runs on their device
+## Status Legend
 
-**Configuration Files Updated**:
-- `experiments/configs/tau2bench_telecom.toml` - now includes `preamble_patch` field
-- `experiments/configs/tau2bench_telecom_focused.toml` - now includes `preamble_patch` field
+- ✅ **FIXED**: Issue resolved with validated patch
+- 🔬 **INVESTIGATING**: Root cause analysis in progress
+- 📝 **DOCUMENTED**: Issue documented, patch pending
+- 🚨 **ACTIVE**: Issue occurring, investigation needed
 
-**Monkeypatch Solution**:
-- `tau2bench_preamble_patch.py` - Core monkeypatch that intercepts `get_chatbot_system_prompt()`
-- `tau2bench_task_wrapper.py` - Config loader (reference implementation)
-- `experiments/scripts/run_bee_with_patch.py` - **Integrated** - automatically applies patches
-- `tests/test_preamble_patch.py` - Unit tests (8/8 passing)
+## Adding New Failure Reports
 
-**How It Works**:
-The `run_bee_with_patch.py` script now automatically:
-1. Patches `get_chatbot_system_prompt()` to inject preamble content
-2. Patches `Tau2BenchTask.__init__` to load `preamble_patch` from config
-3. Injects the patch between `</instructions>` and `<policy>` tags
+When you discover a new systematic failure:
 
-**Zero modifications to apiary codebase required!**
+1. **Document the failure**:
+   - Create `{UPPER_CASE_ID}.md` in this directory
+   - Include 3-5 examples from actual runs
+   - Quote relevant system prompt sections
+   - Analyze root cause
+   - Measure impact (error rates, success rates)
 
-See `MONKEYPATCH_SOLUTION.md` for detailed implementation and `ROOT_CAUSE_ANALYSIS.md` for architectural background.
+2. **Create the patch**:
+   - Write fix in `../prompt_patches/{SAME_ID}.txt`
+   - Keep patches focused and minimal
+   - Reference this report in patch comments
 
----
+3. **Test the patch**:
+   ```bash
+   ./experiments/scripts/run-telecom-eval.sh --patches {ID} --num-tasks 10
+   ```
 
-## Guidelines for Adding New Reports
+4. **Update the TOML** (if validated):
+   ```toml
+   [task.Tau2BenchTask.Telecom]
+   prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER", "{NEW_ID}"]
+   ```
 
-When documenting a new failure:
+5. **Update this README**:
+   - Add to "Active Failures" section
+   - Update status as progress is made
 
-1. **Create a descriptive filename**: `[TASK]_[ISSUE_TYPE]_[DATE].md`
-2. **Include these sections**:
-   - Executive summary with impact metrics
-   - Root cause analysis (eval issue vs. model behavior)
-   - Real examples from logs with conversation excerpts
-   - Pattern analysis showing why the issue occurs
-   - The fix or mitigation strategy
-   - Validation plan
-   - Lessons learned
+## Best Practices
 
-3. **Link related files**:
-   - Original log files
-   - Configuration files
-   - Code changes
+- **Be specific**: Include task IDs and run IDs for reproducibility
+- **Show examples**: Quote actual model outputs, not hypotheticals
+- **Measure impact**: Before and after metrics validate the fix
+- **Stay focused**: One failure mode per report
+- **Link patches**: Always connect reports to their fixes
 
-4. **Update this README** with a summary entry
+## Architecture Notes
 
----
+This failure tracking system is part of the eval-ds prompt patching architecture:
 
-## Archive
+```
+experiments/
+├── failures/          ← Failure documentation (this directory)
+│   ├── README.md      ← You are here
+│   └── {ID}.md        ← Detailed failure analysis
+└── prompt_patches/    ← Prompt fixes
+    ├── README.md      ← Patch usage guide  
+    └── {ID}.txt       ← Minimal fix for specific failure
+```
 
-As issues are resolved and validated, move reports to `experiments/failures/archive/` with a final status update.
-
+The patches are loaded via `prompt_patch_loader.py` and injected into the tau2bench system prompt via `run_bee_with_patch.py`.

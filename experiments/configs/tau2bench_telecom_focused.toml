@@ -20,7 +20,7 @@ parallel = 2  # Lower parallelism for detailed logging
 shuffle_tasks = false  # Keep deterministic order for analysis
 
 # Version and run name
-version = "focused_analysis_with_patch"
+version = "focused_analysis_patch_v2"
 log_wandb_run_name = "{date} - Tau2Bench_Telecom_Focused_Patched [{estimators}]"
 
 # Summary metrics
@@ -41,6 +41,7 @@ prod = false  # Use staging API
 domain = "telecom"
 num_runs = 1  # Single run for focused analysis
 num_truncate = 3  # ONLY first 3 tasks for analysis
+prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER"]  # List of patch IDs to apply
 
 # Estimator configuration
 [estimator.blobheart.focused]
