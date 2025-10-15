@@ -1,0 +1,35 @@
+# Tau2Bench Telecom - command-a-reasoning - 50 samples for failure analysis
+# Fresh test run after comprehensive cleanup
+
+[options]
+beedb = true
+beedb_use_sa = true
+beedb_config = "bee/utils/db_configs/config.yaml"
+log_username = "wojciech_cohere_com"
+log_samples = true
+wandb = false
+log_wandb_project = "eval-ds"
+parallel = 8
+attempts_per_task = 1
+shuffle_tasks = false
+skip_completed_tasks = false
+version = "cmd_reasoning_50_fresh"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_CmdReasoning_50 [{estimators}]"
+
+[options.summary_metrics.Tau2Bench_Telecom]
+"Tau2BenchTask.Telecom:total_reward" = 1
+
+[estimator-defaults]
+k = 0
+p = 1.0
+thinking_enabled = true
+prod = false
+
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 1
+num_truncate = 50
+
+[estimator.blobheart.command_a_reasoning]
+model = "command-a-reasoning"
+

@@ -252,3 +252,8 @@ docs/_build/
 
 # Experiment logs
 experiments/logs/
+experiments/patch_optimization/
+
+# Failure analysis outputs and logs
+failure_analysis/outputs/
+failure_analysis/logs/

@@ -1,0 +1,51 @@
+# Tau2Bench Telecom - Baseline (No Patches)
+#
+# This configuration runs WITHOUT any prompt patches applied.
+# Use for baseline comparison against patched versions.
+#
+# To run:
+#   ./experiments/scripts/run-telecom-eval.sh --baseline
+
+[options]
+# BeeDB tracking
+beedb = true
+beedb_use_sa = true
+beedb_config = "bee/utils/db_configs/config.yaml"
+log_username = "wojciech_cohere_com"
+
+# Logging
+log_samples = true
+wandb = false
+log_wandb_project = "eval-ds"
+
+# Execution
+parallel = 4
+attempts_per_task = 3
+shuffle_tasks = false
+
+# Version and run name
+version = "baseline_no_patches"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Baseline [no patches] [{estimators}]"
+
+# Summary metrics
+[options.summary_metrics.Tau2Bench_Telecom]
+"Tau2BenchTask.Telecom:total_reward" = 1.0
+
+# Global estimator defaults
+[estimator-defaults]
+k = 0
+p = 1.0
+temperature = 0.6
+thinking_enabled = true
+prod = false  # Use staging API
+
+# Task configuration WITHOUT patches
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 1
+# NO prompt_patches field - baseline has vanilla system prompt
+
+# Estimator configuration
+[estimator.blobheart.baseline]
+model = "c4-prod-run-1"
+

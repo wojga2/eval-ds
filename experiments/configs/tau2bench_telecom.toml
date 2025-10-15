@@ -16,12 +16,12 @@ inspect = false
 verbose = true
 log_every = 0.5
 attempts_per_task = 3
-parallel = 4
+parallel = 8
 shuffle_tasks = true
 
 # Version and run name
-version = "preamble_v1"
-log_wandb_run_name = "{date} - Tau2Bench_Telecom_Preamble [{estimators}]"
+version = "full_eval_iter4_patch_5runs"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Full_Eval_5Runs [{estimators}]"
 
 # Summary metrics
 [options.summary_metrics.Tau2Bench_Telecom]
@@ -39,10 +39,10 @@ prod = false  # Use staging API
 # Task configuration with preamble patch
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
-num_runs = 3
-prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER"]  # List of patch IDs to apply
+num_runs = 5  # 5 runs for stability analysis
+prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER"]  # Iteration 4 patch
 
 # Estimator configuration
-[estimator.blobheart.preamble_v1]
+[estimator.blobheart.full_eval]
 model = "c4-prod-run-1"
 

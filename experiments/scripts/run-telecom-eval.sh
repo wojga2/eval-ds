@@ -16,6 +16,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG="${PROJECT_ROOT}/experiments/configs/tau2bench_telecom.toml"
 QUICK_MODE=false
 FOCUSED_MODE=false
+BASELINE_MODE=false
 NUM_TASKS=""
 
 # Parse arguments
@@ -30,6 +31,11 @@ while [[ $# -gt 0 ]]; do
             CONFIG="${PROJECT_ROOT}/experiments/configs/tau2bench_telecom_focused.toml"
             shift
             ;;
+        --baseline)
+            BASELINE_MODE=true
+            CONFIG="${PROJECT_ROOT}/experiments/configs/tau2bench_telecom_baseline.toml"
+            shift
+            ;;
         --num-tasks)
             if [[ -n "${2:-}" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
                 NUM_TASKS="$2"
@@ -41,15 +47,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: $0 [--quick|--focused [--num-tasks N]]"
+            echo "Usage: $0 [--quick|--focused|--baseline [--num-tasks N]]"
             exit 1
             ;;
     esac
 done
 
 # Validate arguments
-if [[ -n "$NUM_TASKS" ]] && [[ "$FOCUSED_MODE" != true ]]; then
-    echo "Error: --num-tasks can only be used with --focused mode"
+if [[ -n "$NUM_TASKS" ]] && [[ "$FOCUSED_MODE" != true ]] && [[ "$BASELINE_MODE" != true ]]; then
+    echo "Error: --num-tasks can only be used with --focused or --baseline mode"
     exit 1
 fi
 
@@ -98,7 +104,16 @@ echo "API: Staging (CO_API_KEY_STAGING)"
 echo "Log file: ${LOG_FILE}"
 echo ""
 
-if [ "$FOCUSED_MODE" = true ]; then
+if [ "$BASELINE_MODE" = true ]; then
+    echo "📊 Baseline mode: Running WITHOUT prompt patches"
+    if [[ -n "$NUM_TASKS" ]]; then
+        echo "📋 Tasks: First ${NUM_TASKS} tasks"
+        BEE_ARGS=("-I" "${CONFIG}" "--options" "--num_truncate" "${NUM_TASKS}")
+    else
+        BEE_ARGS=("-I" "${CONFIG}")
+    fi
+    echo ""
+elif [ "$FOCUSED_MODE" = true ]; then
     # Determine number of tasks (default 3, or custom from --num-tasks)
     TASKS_TO_RUN="${NUM_TASKS:-3}"
     echo "🔬 Focused mode: Running first ${TASKS_TO_RUN} tasks for failure analysis"

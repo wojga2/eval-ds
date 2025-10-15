@@ -16,12 +16,13 @@ inspect = false
 verbose = true
 log_every = 0.5
 attempts_per_task = 1  # Single attempt for focused analysis
-parallel = 2  # Lower parallelism for detailed logging
+parallel = 8  # Higher parallelism for faster iteration
 shuffle_tasks = false  # Keep deterministic order for analysis
+skip_completed_tasks = false  # Force fresh run - no cache
 
 # Version and run name
-version = "focused_analysis_patch_v2"
-log_wandb_run_name = "{date} - Tau2Bench_Telecom_Focused_Patched [{estimators}]"
+version = "cmd_reasoning_50_fresh"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_CmdReasoning_50 [{estimators}]"
 
 # Summary metrics
 [options.summary_metrics.Tau2Bench_Telecom]
@@ -36,14 +37,13 @@ temperature = 0.6
 thinking_enabled = true
 prod = false  # Use staging API
 
-# Task configuration with preamble patch
+# Task configuration
 [task.Tau2BenchTask.Telecom]
 domain = "telecom"
 num_runs = 1  # Single run for focused analysis
-num_truncate = 3  # ONLY first 3 tasks for analysis
-prompt_patches = ["TOOL_CONFUSION_AGENT_VS_USER"]  # List of patch IDs to apply
+num_truncate = 50  # First 50 tasks for analysis
 
 # Estimator configuration
 [estimator.blobheart.focused]
-model = "c4-prod-run-1"
+model = "command-a-reasoning"
 
