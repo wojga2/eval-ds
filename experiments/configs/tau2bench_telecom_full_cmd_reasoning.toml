@@ -1,0 +1,47 @@
+# Tau2Bench Telecom - Full evaluation with command-a-reasoning
+# All 114 tasks, 1 run per task
+
+[options]
+# Logging - use beedb for storage, disable wandb
+beedb = true
+wandb = false
+log_wandb_project = "eval-ds"
+log_samples = true
+log_samples_n = -1  # Log all samples for analysis
+make_wandb_report = false
+
+# Execution settings
+inspect = false
+verbose = true
+log_every = 0.5
+attempts_per_task = 1  # Single attempt per task
+parallel = 8  # 8 workers for parallelism
+shuffle_tasks = false  # Keep deterministic order
+skip_completed_tasks = false  # Force fresh run - no cache
+
+# Version and run name
+version = "cmd_reasoning_telecom_full"
+log_wandb_run_name = "{date} - Tau2Bench_Telecom_Full_CmdReasoning [{estimators}]"
+
+# Summary metrics
+[options.summary_metrics.Tau2Bench_Telecom]
+"Tau2BenchTask.Telecom:total_reward" = 1
+
+# Estimator defaults (recommended for reasoning models)
+# prod = false means use staging API (CO_API_KEY_STAGING)
+[estimator-defaults]
+k = 0
+p = 0.95
+temperature = 0.6
+thinking_enabled = true
+prod = false  # Use staging API
+
+# Task configuration - NO num_truncate = run all tasks
+[task.Tau2BenchTask.Telecom]
+domain = "telecom"
+num_runs = 1  # Single run per task
+
+# Estimator configuration
+[estimator.blobheart.cmd_reasoning_full]
+model = "command-a-reasoning"
+

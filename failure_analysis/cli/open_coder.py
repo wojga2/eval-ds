@@ -190,9 +190,19 @@ Perform **open coding** on this failure case. Open coding is a qualitative analy
             tool_calls = turn.get('tool_calls', [])
             tool_results = turn.get('tool_results', [])
             
+            # Extract text from content (could be list of dicts or string)
+            if isinstance(content, list):
+                text_parts = []
+                for block in content:
+                    if isinstance(block, dict) and 'text' in block:
+                        text_parts.append(block['text'])
+                content_text = '\n'.join(text_parts)
+            else:
+                content_text = str(content) if content else ''
+            
             prompt += f"\n**Turn {i+1} - {role}**:\n"
-            if content:
-                prompt += f"Message: {str(content)[:500]}\n"  # Limit message length
+            if content_text:
+                prompt += f"Message: {content_text[:500]}\n"  # Limit message length
             if tool_calls:
                 prompt += f"Tool Calls: {json.dumps(tool_calls, indent=2)}\n"
             if tool_results:
